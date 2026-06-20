@@ -2,7 +2,7 @@
 # 功能： 编写 python 爬虫程序，爬取美团网站的信息，存入本地csv文件中。
 # 日期：2023年6月6日
 
-import csv, urllib.request, re, requests, os  # 导入模块
+import csv, urllib.parse, re, requests, os  # 导入模块
 
 def meituan(name, pages, cookie_main, cookie_page):
     original_name = name  # 保存原始名称用于文件命名
