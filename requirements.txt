@@ -1,9 +1,30 @@
+# ── 数据库与业务系统模拟 ──
 pymysql
 pyodbc
-requests
-paramiko
+
+# ── 网络爬虫项目 ──
+requests>=2.28.0
+prettytable
+xlwt
+
+# ── 多媒体处理 ──
+mutagen
+
+# ── 桌面 GUI 应用 ──
+qrcode>=7.4
+Pillow
+
+# ── 数据可视化与分析 ──
+matplotlib
 jieba
 wordcloud
-Pillow
+
+# ── 系统运维与实用工具 ──
+paramiko
+
+# ── Web 端开发 ──
 flask
-django
+
+# ── 可选依赖 ──
+# curl_cffi 仅在 bilibili_cleaner.py 中 urllib 被 Cloudflare 拦截时作为降级备选
+# pip install curl_cffi>=0.6.0
