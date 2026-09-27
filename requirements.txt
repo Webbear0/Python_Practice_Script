@@ -24,7 +24,3 @@ paramiko
 
 # ── Web 端开发 ──
 flask
-
-# ── 可选依赖 ──
-# curl_cffi 仅在 bilibili_cleaner.py 中 urllib 被 Cloudflare 拦截时作为降级备选
-# pip install curl_cffi>=0.6.0
