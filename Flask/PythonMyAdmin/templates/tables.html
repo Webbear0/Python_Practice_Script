@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block crumbs %}
+<nav class="crumbs"><a href="{{ url_for('databases') }}">数据库</a> / {{ db }}</nav>
+{% endblock %}
+{% block content %}
+<table>
+    <tr><th>数据表</th><th>类型</th><th>引擎</th><th>行数（约）</th><th>备注</th></tr>
+    {% for t in tables %}
+    <tr>
+        <td>
+            <a href="{{ url_for('browse', db=db, table=t.name) }}">{{ t.name }}</a>
+            {% if not t.has_pk %}<span class="tag warn-tag">无主键</span>{% endif %}
+        </td>
+        <td>{{ '视图' if t.type == 'VIEW' else '表' }}</td>
+        <td>{{ t.engine or '' }}</td>
+        <td>{{ t.row_count if t.row_count is not none else '' }}</td>
+        <td>{{ t.comment }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="empty">该数据库中还没有数据表</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}

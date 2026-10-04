@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block crumbs %}
+<nav class="crumbs">
+    <a href="{{ url_for('databases') }}">数据库</a> /
+    <a href="{{ url_for('tables', db=db) }}">{{ db }}</a> /
+    <a href="{{ url_for('browse', db=db, table=table) }}">{{ table }}</a> /
+    {{ '新增' if mode == 'insert' else '编辑' }}
+</nav>
+{% endblock %}
+{% block content %}
+<p class="muted">
+    {% if mode == 'insert' %}留空的字段使用数据库默认值（自增字段自动生成）；勾选 NULL 写入空值。
+    {% else %}勾选 NULL 写入空值；输入框留空表示空字符串。{% endif %}
+</p>
+
+<!-- 不写 action：提交到当前地址，编辑时 URL 中的主键参数会一起带上 -->
+<form method="post" class="card">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <table class="form-table">
+        {% for c in cols %}{% set v = row.get(c.Field) %}
+        <tr>
+            <th>
+                {{ c.Field }}{% if c.Field in pks %} 🔑{% endif %}
+                <div class="muted">{{ c.Type }}{% if c.auto %} · 自增{% endif %}</div>
+            </th>
+            <td>
+                {% if c.binary %}
+                <span class="muted">二进制字段，网页中不支持编辑</span>
+                {% elif 'text' in c.Type %}
+                <textarea name="f{{ loop.index0 }}" rows="3">{{ '' if v is none else v }}</textarea>
+                {% else %}
+                <input name="f{{ loop.index0 }}" value="{{ '' if v is none else v }}">
+                {% endif %}
+            </td>
+            <td>
+                {% if c.Null == 'YES' and not c.binary %}
+                <label><input type="checkbox" name="n{{ loop.index0 }}"
+                    {% if mode == 'edit' and v is none %}checked{% endif %}> NULL</label>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <button class="btn primary">保存</button>
+    <a class="btn" href="{{ url_for('browse', db=db, table=table) }}">取消</a>
+</form>
+{% endblock %}

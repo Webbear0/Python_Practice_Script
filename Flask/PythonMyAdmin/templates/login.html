@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="post" class="card login">
+    <h2>连接数据库</h2>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label>主机<input name="host" value="{{ form.host or '' }}" required autofocus></label>
+    <label>端口<input name="port" type="number" min="1" max="65535" value="{{ form.port or 3306 }}"></label>
+    <label>用户名<input name="user" value="{{ form.user or '' }}" required></label>
+    <label>密码<input name="password" type="password" autocomplete="current-password"></label>
+    <button class="btn primary">连接</button>
+</form>
+{% endblock %}

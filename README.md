@@ -18,10 +18,9 @@ Python_Practice_Script/
 ├── Tool/                       # 实用工具箱（6）
 ├── Web_Spider/                 # 网络爬虫（6）
 ├── music_tool/                 # 音乐处理工具（2）
-├── Flask/                      # Web 应用（1）
-│   ├── app.py                  #   Flask 入口
-│   ├── static/logo.png         #   静态资源
-│   └── templates/index.html    #   首页模板
+├── Flask/                      # Web 应用（2）
+│   ├── demo/                   #   Flask 入门示例
+│   └── PythonMyAdmin/          #   迷你版 phpMyAdmin
 ├── requirements.txt            # 项目依赖
 └── README.md
 ```
@@ -103,9 +102,14 @@ Python_Practice_Script/
 
 ##  Flask — Web 应用
 
-| 脚本 | 功能说明 | 核心技术 |
+| 项目 | 功能说明 | 核心技术 |
 |------|---------|---------|
-| [`app.py`](Flask/app.py) | Flask 最小可运行示例 —— 单路由渲染模板，配合 `static/` 与 `templates/` 目录结构演示静态资源与 Jinja2 模板加载 | `flask` · `Jinja2` |
+| [`demo`](Flask/demo/app.py) | Flask 最小可运行示例 —— 单路由渲染模板，配合 `static/` 与 `templates/` 目录结构演示静态资源与 Jinja2 模板加载 | `flask` · `Jinja2` |
+| [`PythonMyAdmin`](Flask/PythonMyAdmin/app.py) | 迷你版 phpMyAdmin —— 网页登录 MySQL / MariaDB，新建数据库，分页浏览表数据，按主键增删改（支持联合主键），无主键表给出警告并禁止编辑和删除 | `flask` · `pymysql` · `Jinja2` |
+
+**PythonMyAdmin 的内网安全措施**：值参数化 + 库名/表名白名单校验防 SQL 注入；数据库密码只存服务端内存；CSRF 令牌；CSP 禁止内联脚本；空闲 30 分钟自动退出；登录失败 5 次锁定 5 分钟；关闭 debug，默认只监听本机。
+
+> 仅建议在本机或内网使用。需要让内网其他机器访问时，启动前设置环境变量 `PMA_HOST=0.0.0.0`。
 
 ---
 
