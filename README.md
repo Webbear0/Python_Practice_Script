@@ -1,6 +1,6 @@
 #  Python_Practice_Script
 
-本项目收录了学习 Python 期间编写的 **24 个**实战脚本，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维以及 Web API 调用等多个领域。
+本项目收录了学习 Python 期间编写的 **23 个**实战脚本，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维以及 Web API 调用等多个领域。
 
 所有代码均已在 **Python 3.12+** 环境下测试通过。
 
@@ -9,13 +9,20 @@
 ##  目录结构
 
 ```
-Python_Script/
-├── BiliBili_tool/          # B站数据工具集
-├── SQL/                    # 数据库应用
-├── Tool/                   # 实用工具箱
-├── Web_Spider/             # 网络爬虫
-├── music_tool/             # 音乐处理工具
-├── requirements.txt        # 项目依赖
+Python_Practice_Script/
+├── BiliBili_tool/              # B站数据工具集（7）
+├── SQL/                        # 数据库应用（5）
+│   ├── MySQL/                  #   pymysql
+│   ├── SQLlite/                #   sqlite3
+│   └── SQL Server/             #   pyodbc
+├── Tool/                       # 实用工具箱（6）
+├── Web_Spider/                 # 网络爬虫（6）
+├── music_tool/                 # 音乐处理工具（2）
+├── Flask/                      # Web 应用（1）
+│   ├── app.py                  #   Flask 入口
+│   ├── static/logo.png         #   静态资源
+│   └── templates/index.html    #   首页模板
+├── requirements.txt            # 项目依赖
 └── README.md
 ```
 
@@ -37,11 +44,25 @@ Python_Script/
 
 ##  SQL — 数据库应用
 
+### MySQL
+
 | 脚本 | 功能说明 | 核心技术 |
 |------|---------|---------|
-| [`bank_os.py`](SQL/bank_os.py) | 基于 MySQL 的控制台银行系统 —— 开户、销户、存取款、余额查询，自动建库建表，参数化防注入 | `pymysql` · MySQL |
-| [`bank_os_sqlserver.py`](SQL/bank_os_sqlserver.py) | 基于 SQL Server 的高级银行系统 —— 引入事务回滚、T-SQL 存储过程，保障资金原子性 | `pyodbc` · SQL Server |
-| [`campus_network.py`](SQL/campus_network.py) | 数字校园网络身份认证系统 —— 用户注册 / 登录校验，输入合法性前置判断 | `pymysql` · MySQL |
+| [`bank_os_mysql.py`](SQL/MySQL/bank_os_mysql.py) | 基于 MySQL 的控制台银行系统 —— 开户、销户、存取款、余额查询，自动建库建表，参数化防注入 | `pymysql` · MySQL |
+| [`campus_network_mysql.py`](SQL/MySQL/campus_network_mysql.py) | 数字校园网络身份认证系统 —— 用户注册 / 登录校验，输入合法性前置判断 | `pymysql` · MySQL |
+
+### SQL Server
+
+| 脚本 | 功能说明 | 核心技术 |
+|------|---------|---------|
+| [`bank_os_sqlserver.py`](SQL/SQL%20Server/bank_os_sqlserver.py) | 基于 SQL Server 的高级银行系统 —— 引入事务回滚、T-SQL 存储过程，保障资金原子性 | `pyodbc` · SQL Server |
+| [`campus_network_sqlserver.py`](SQL/SQL%20Server/campus_network_sqlserver.py) | 数字校园网络身份认证系统（SQL Server 版）—— 注册 / 登录校验，自动建库建表 | `pyodbc` · SQL Server |
+
+### SQLite
+
+| 脚本 | 功能说明 | 核心技术 |
+|------|---------|---------|
+| [`todo_list.py`](SQL/SQLlite/todo_list.py) | 本地待办事项清单 —— 增删改查、标记完成、清理已完成，零配置单文件数据库 | `sqlite3` · SQLite |
 
 ---
 
@@ -80,12 +101,21 @@ Python_Script/
 
 ---
 
+##  Flask — Web 应用
+
+| 脚本 | 功能说明 | 核心技术 |
+|------|---------|---------|
+| [`app.py`](Flask/app.py) | Flask 最小可运行示例 —— 单路由渲染模板，配合 `static/` 与 `templates/` 目录结构演示静态资源与 Jinja2 模板加载 | `flask` · `Jinja2` |
+
+---
+
 ##  快速开始
 
 ### 环境要求
 
 - Python **3.12+**
-- 部分脚本需要额外服务：MySQL（`bank_os.py` / `campus_network.py`）、SQL Server（`bank_os_sqlserver.py`）、FFmpeg（`music_manager.py`）
+- 部分脚本需要额外服务：MySQL（`bank_os_mysql.py` / `campus_network_mysql.py`）、SQL Server（`bank_os_sqlserver.py` / `campus_network_sqlserver.py`）、FFmpeg（`music_manager.py`）
+- `todo_list.py` 使用内置 `sqlite3`，无需安装任何数据库服务
 
 ### 安装依赖
 
@@ -107,6 +137,9 @@ python Tool/weather_line_chart.py
 
 # 启动 LRC 歌词编辑器
 python music_tool/lrc_editor.py
+
+# 启动 Flask 示例站点（访问 http://127.0.0.1:5000）
+python Flask/app.py
 ```
 
 ---
@@ -115,7 +148,7 @@ python music_tool/lrc_editor.py
 
 | 类别 | 依赖包 |
 |------|--------|
-| 数据库 | `pymysql` · `pyodbc` |
+| 数据库 | `pymysql` · `pyodbc` · `sqlite3`（Python 内置，无需安装） |
 | 网络请求 | `requests` |
 | 数据展示 | `prettytable` · `xlwt` |
 | 多媒体 | `mutagen` |
