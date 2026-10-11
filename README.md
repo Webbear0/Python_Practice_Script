@@ -1,6 +1,6 @@
 #  Python_Practice_Script
 
-本项目收录了学习 Python 期间编写的 **23 个**实战脚本，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维以及 Web API 调用等多个领域。
+本项目收录了学习 Python 期间编写的 **28 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
 
 所有代码均已在 **Python 3.12+** 环境下测试通过。
 
@@ -105,7 +105,7 @@ Python_Practice_Script/
 | 项目 | 功能说明 | 核心技术 |
 |------|---------|---------|
 | [`demo`](Flask/demo/app.py) | Flask 最小可运行示例 —— 单路由渲染模板，配合 `static/` 与 `templates/` 目录结构演示静态资源与 Jinja2 模板加载 | `flask` · `Jinja2` |
-| [`PythonMyAdmin`](Flask/PythonMyAdmin/app.py) | 迷你版 phpMyAdmin —— 网页登录 MySQL / MariaDB，新建数据库，分页浏览表数据，按主键增删改（支持联合主键），无主键表给出警告并禁止编辑和删除 | `flask` · `pymysql` · `Jinja2` |
+| [`PythonMyAdmin`](Flask/PythonMyAdmin/app.py) | 迷你版 phpMyAdmin —— 网页登录 MySQL / MariaDB，新建数据库和数据表（逐行定义字段，必须有主键），分页浏览表数据，按主键增删改（支持联合主键），无主键表给出警告并禁止编辑和删除 | `flask` · `pymysql` · `Jinja2` |
 
 **PythonMyAdmin 的内网安全措施**：值参数化 + 库名/表名白名单校验防 SQL 注入；数据库密码只存服务端内存；CSRF 令牌；CSP 禁止内联脚本；空闲 30 分钟自动退出；登录失败 5 次锁定 5 分钟；关闭 debug，默认只监听本机。
 
@@ -118,7 +118,7 @@ Python_Practice_Script/
 ### 环境要求
 
 - Python **3.12+**
-- 部分脚本需要额外服务：MySQL（`bank_os_mysql.py` / `campus_network_mysql.py`）、SQL Server（`bank_os_sqlserver.py` / `campus_network_sqlserver.py`）、FFmpeg（`music_manager.py`）
+- 部分脚本需要额外服务：MySQL（`bank_os_mysql.py` / `campus_network_mysql.py`）、SQL Server（`bank_os_sqlserver.py` / `campus_network_sqlserver.py`）、MySQL 或 MariaDB（`PythonMyAdmin`）、FFmpeg（`music_manager.py`）
 - `todo_list.py` 使用内置 `sqlite3`，无需安装任何数据库服务
 
 ### 安装依赖
@@ -142,9 +142,14 @@ python Tool/weather_line_chart.py
 # 启动 LRC 歌词编辑器
 python music_tool/lrc_editor.py
 
-# 启动 Flask 示例站点（访问 http://127.0.0.1:5000）
-python Flask/app.py
+# 启动 Flask 入门示例（访问 http://127.0.0.1:5000）
+python Flask/demo/app.py
+
+# 启动 PythonMyAdmin（访问 http://127.0.0.1:5000，在网页上填写数据库连接信息）
+python Flask/PythonMyAdmin/app.py
 ```
+
+> 两个 Flask 项目都使用 5000 端口，不能同时运行。
 
 ---
 

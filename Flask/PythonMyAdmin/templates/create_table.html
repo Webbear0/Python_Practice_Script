@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block crumbs %}
+<nav class="crumbs">
+    <a href="{{ url_for('databases') }}">数据库</a> /
+    <a href="{{ url_for('tables', db=db) }}">{{ db }}</a> / 新建数据表
+</nav>
+{% endblock %}
+{% block content %}
+<form method="post" class="card">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+    <div class="toolbar">
+        <label>表名 <input name="table" value="{{ form.table }}" pattern="[A-Za-z0-9_]{1,64}" required></label>
+        <label>引擎
+            <select name="engine">
+                {% for e in engines %}<option {% if e == form.engine %}selected{% endif %}>{{ e }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>字符集
+            <select name="charset">
+                {% for c in charsets %}<option {% if c == form.charset %}selected{% endif %}>{{ c }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>备注 <input name="comment" value="{{ form.comment }}"></label>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>字段名</th><th>类型</th><th>长度</th><th>默认值</th><th>允许 NULL</th><th>主键</th><th>自增</th></tr>
+        </thead>
+        <!-- 复选框的 value 是行号，后端靠它判断勾选的是哪一行 -->
+        <tbody id="columns">
+            {% for c in cols %}{% set i = loop.index0 %}
+            <tr>
+                <td><input name="name" value="{{ c.name }}" pattern="[A-Za-z0-9_]{1,64}"></td>
+                <td>
+                    <select name="type">
+                        {% for t in types %}<option {% if t == c.type %}selected{% endif %}>{{ t }}</option>{% endfor %}
+                    </select>
+                </td>
+                <td><input name="length" value="{{ c.length }}" size="6"></td>
+                <td><input name="default" value="{{ c.default }}"></td>
+                <td class="center"><input type="checkbox" name="null" value="{{ i }}" {% if c.null %}checked{% endif %}></td>
+                <td class="center"><input type="checkbox" name="pk" value="{{ i }}" {% if c.pk %}checked{% endif %}></td>
+                <td class="center"><input type="checkbox" name="ai" value="{{ i }}" {% if c.ai %}checked{% endif %}></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <ul class="muted hints">
+        <li>字段名留空的行会被忽略；表名和字段名只能包含字母、数字、下划线。</li>
+        <li>长度：VARCHAR / CHAR 必填；DECIMAL 可填 <code>10,2</code> 这样的格式；整数类型可选；其余类型留空。</li>
+        <li>默认值：TIMESTAMP 字段填 <code>CURRENT_TIMESTAMP</code> 表示当前时间；TEXT 和自增字段不能设置默认值。</li>
+        <li>必须至少勾选一个主键（勾选多个即联合主键）；自增只能用于整数类型的主键字段。</li>
+    </ul>
+
+    <button type="button" class="btn" data-add-row="columns">+ 添加字段</button>
+    <button class="btn primary">创建</button>
+    <a class="btn" href="{{ url_for('tables', db=db) }}">取消</a>
+</form>
+{% endblock %}

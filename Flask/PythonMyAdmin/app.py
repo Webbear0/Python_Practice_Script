@@ -1,7 +1,7 @@
 """
 PythonMyAdmin —— 基于 Flask 的迷你版 phpMyAdmin
 ================================================
-功能：连接 MySQL / MariaDB，新建数据库，对表数据进行增删改查
+功能：连接 MySQL / MariaDB，新建数据库和数据表，对表数据进行增删改查
 
 运行：
   .venv\\Scripts\\python.exe Flask\\PythonMyAdmin\\app.py
@@ -39,7 +39,17 @@ IDLE_TIMEOUT = 30 * 60          # 空闲超时（秒）
 MAX_FAILS, LOCK_SECONDS = 5, 300
 SYSTEM_DBS = {"information_schema", "mysql", "performance_schema", "sys"}
 CHARSETS = ["utf8mb4", "utf8", "latin1", "gbk"]
-DB_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")
+DB_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")  # 库名 / 表名 / 字段名通用
+
+# 建表：字段类型白名单 -> 长度规则（int=可选整数, decimal=可选 M 或 M,D, need=必填, none=不填）
+COL_TYPES = {
+    "INT": "int", "BIGINT": "int", "TINYINT": "int",
+    "DECIMAL": "decimal", "FLOAT": "none", "DOUBLE": "none",
+    "VARCHAR": "need", "CHAR": "need", "TEXT": "none",
+    "DATE": "none", "DATETIME": "none", "TIMESTAMP": "none",
+}
+LENGTH_RE = {"int": r"\d{1,3}", "decimal": r"\d{1,2}(,\d{1,2})?", "need": r"\d{1,5}"}
+ENGINES = ["InnoDB", "MyISAM"]
 
 CONNS = {}  # token -> 连接信息（含密码，仅存在服务端内存）
 FAILS = {}  # ip -> (失败次数, 首次失败时间)
@@ -121,6 +131,78 @@ def read_form(cols, is_insert):
             continue
         data[c["Field"]] = value
     return data
+
+
+def read_columns():
+    """读取建表表单的字段行。复选框的 value 是行号，用来对应到具体哪一行"""
+    f = request.form
+    pk, ai, nullable = (set(f.getlist(k)) for k in ("pk", "ai", "null"))
+    rows = zip(f.getlist("name"), f.getlist("type"), f.getlist("length"), f.getlist("default"))
+    return [{"name": name.strip(), "type": typ, "length": length.strip(), "default": default,
+             "pk": str(i) in pk, "ai": str(i) in ai, "null": str(i) in nullable}
+            for i, (name, typ, length, default) in enumerate(rows)]
+
+
+def build_create_sql(table, cols, engine, charset, comment):
+    """校验字段定义，返回 (CREATE TABLE 语句, 参数)；不合法时抛 ValueError"""
+    if not DB_NAME_RE.match(table):
+        raise ValueError("表名只能包含字母、数字、下划线，长度 1-64")
+    if engine not in ENGINES or charset not in CHARSETS:
+        raise ValueError("不支持的存储引擎或字符集")
+    cols = [c for c in cols if c["name"]]  # 字段名留空的行忽略
+    if not cols:
+        raise ValueError("至少需要一个字段")
+
+    lines, args, seen = [], [], set()
+    for c in cols:
+        name, base = c["name"], c["type"]
+        rule = COL_TYPES.get(base)
+        if not DB_NAME_RE.match(name):
+            raise ValueError(f"字段名 {name} 不合法：只能包含字母、数字、下划线")
+        if name.lower() in seen:  # MySQL 字段名不区分大小写
+            raise ValueError(f"字段名 {name} 重复")
+        seen.add(name.lower())
+        if rule is None:
+            raise ValueError(f"字段 {name}：不支持的类型")
+        if rule == "need" and not c["length"]:
+            raise ValueError(f"字段 {name}：{base} 必须填写长度")
+
+        sql_type = base
+        if c["length"]:
+            if rule == "none":
+                raise ValueError(f"字段 {name}：{base} 不需要填写长度")
+            if not re.fullmatch(LENGTH_RE[rule], c["length"]):
+                raise ValueError(f"字段 {name}：长度格式不正确")
+            sql_type += f"({c['length']})"
+
+        line = f"{q(name)} {sql_type}" + (" NULL" if c["null"] and not c["pk"] else " NOT NULL")
+        if c["ai"]:
+            if rule != "int" or not c["pk"]:
+                raise ValueError(f"字段 {name}：只有整数类型的主键字段可以自增")
+            line += " AUTO_INCREMENT"
+        if c["default"] != "":
+            if c["ai"] or base == "TEXT":
+                raise ValueError(f"字段 {name}：自增字段和 TEXT 字段不能设置默认值")
+            if c["default"].upper() == "CURRENT_TIMESTAMP" and base in ("TIMESTAMP", "DATETIME"):
+                line += " DEFAULT CURRENT_TIMESTAMP"
+            else:
+                line += " DEFAULT %s"  # 默认值参数化，防注入
+                args.append(c["default"])
+        lines.append(line)
+
+    if sum(c["ai"] for c in cols) > 1:
+        raise ValueError("一张表只能有一个自增字段")
+    pks = [c["name"] for c in cols if c["pk"]]
+    if not pks:
+        raise ValueError("必须至少勾选一个主键字段（没有主键的表无法在本工具中编辑和删除数据）")
+    lines.append("PRIMARY KEY (" + ", ".join(map(q, pks)) + ")")
+
+    sql = (f"CREATE TABLE {q(table)} (\n  " + ",\n  ".join(lines) +
+           f"\n) ENGINE={engine} DEFAULT CHARSET={charset}")
+    if comment:
+        sql += " COMMENT=%s"
+        args.append(comment)
+    return sql, args
 
 
 # ══════════════════════════════════════════════
@@ -289,6 +371,41 @@ def tables(db):
         ORDER BY t.TABLE_NAME
     """, (db,))
     return render_template("tables.html", db=db, tables=rows)
+
+
+@app.route("/create_table/<db>", methods=["GET", "POST"])
+@login_required
+def create_table(db):
+    """建表：根据表单生成 CREATE TABLE，出错时回到表单并保留已填内容"""
+    check_db(db)
+    form = {"table": "", "engine": "InnoDB", "charset": "utf8mb4", "comment": ""}
+    blank = {"name": "", "type": "VARCHAR", "length": "", "default": "",
+             "pk": False, "ai": False, "null": True}
+    cols = [{**blank, "name": "id", "type": "INT", "pk": True, "ai": True, "null": False},
+            blank, blank, blank]
+
+    if request.method == "POST":
+        form = {k: request.form.get(k, "").strip() for k in form}
+        cols = read_columns()
+        try:
+            sql, args = build_create_sql(form["table"], cols, form["engine"],
+                                         form["charset"], form["comment"])
+            conn = connect(database=db)
+            try:
+                with conn.cursor() as cur:
+                    final = cur.mogrify(sql, args)  # 得到实际发送给数据库的语句，用于展示
+                    cur.execute(final)
+            finally:
+                conn.close()
+        except (ValueError, pymysql.MySQLError) as e:
+            msg = e.args[-1] if isinstance(e, pymysql.MySQLError) and e.args else e
+            flash(f"建表失败：{msg}")
+        else:
+            flash(f"数据表 {form['table']} 创建成功，执行的 SQL：\n{final}")
+            return redirect(url_for("browse", db=db, table=form["table"]))
+
+    return render_template("create_table.html", db=db, form=form, cols=cols,
+                           types=COL_TYPES, engines=ENGINES, charsets=CHARSETS)
 
 
 # ══════════════════════════════════════════════

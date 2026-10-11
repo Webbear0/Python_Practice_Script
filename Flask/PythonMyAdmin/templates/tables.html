@@ -3,6 +3,9 @@
 <nav class="crumbs"><a href="{{ url_for('databases') }}">数据库</a> / {{ db }}</nav>
 {% endblock %}
 {% block content %}
+<div class="toolbar">
+    <a class="btn primary" href="{{ url_for('create_table', db=db) }}">+ 新建数据表</a>
+</div>
 <table>
     <tr><th>数据表</th><th>类型</th><th>引擎</th><th>行数（约）</th><th>备注</th></tr>
     {% for t in tables %}
