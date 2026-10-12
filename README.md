@@ -1,6 +1,6 @@
 #  Python_Practice_Script
 
-本项目收录了学习 Python 期间编写的 **28 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
+本项目收录了学习 Python 期间编写的 **29 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
 
 所有代码均已在 **Python 3.12+** 环境下测试通过。
 
@@ -15,7 +15,7 @@ Python_Practice_Script/
 │   ├── MySQL/                  #   pymysql
 │   ├── SQLlite/                #   sqlite3
 │   └── SQL Server/             #   pyodbc
-├── Tool/                       # 实用工具箱（6）
+├── Tool/                       # 实用工具箱（7）
 ├── Web_Spider/                 # 网络爬虫（6）
 ├── music_tool/                 # 音乐处理工具（2）
 ├── Flask/                      # Web 应用（2）
@@ -75,6 +75,7 @@ Python_Practice_Script/
 | [`word_cloud.py`](Tool/word_cloud.py) | 中文人名词云图生成 —— jieba 词性标注提取人名，Tkinter 弹窗展示 | `jieba` · `wordcloud` · `tkinter` |
 | [`remote_command.py`](Tool/remote_command.py) | SSH 远程运维工具 —— 交互式命令执行 + SFTP 文件上传 / 下载 / 改名 | `paramiko` |
 | [`mc_server_query.py`](Tool/mc_server_query.py) | Minecraft 服务器状态查询 + IP 地理位置追踪 | `requests` |
+| [`Process_and_System_Utilities.py`](Tool/Process_and_System_Utilities.py) | 进程和系统实用程序 —— 系统概览、进程排行（CPU / 内存）、模糊搜索进程、结束进程、实时资源监控 | `psutil` |
 
 ---
 
