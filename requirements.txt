@@ -21,6 +21,7 @@ wordcloud
 
 # ── 系统运维与实用工具 ──
 paramiko
+psutil
 
 # ── Web 端开发 ──
 flask
