@@ -1,3 +1,4 @@
+#最简单的Flask应用
 from flask import Flask, render_template
 
 app = Flask(__name__)
