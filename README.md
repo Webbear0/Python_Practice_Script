@@ -16,6 +16,11 @@ Python_Practice_Script/
 │   ├── SQLlite/                #   sqlite3
 │   └── SQL Server/             #   pyodbc
 ├── Tool/                       # 实用工具箱（8）
+│   ├── Server_Tool/            #   服务器运维工具（4）
+│   ├── train_ticket_query.py
+│   ├── weather_line_chart.py
+│   ├── qrcode_generator.py
+│   └── word_cloud.py
 ├── Web_Spider/                 # 网络爬虫（6）
 ├── music_tool/                 # 音乐处理工具（2）
 ├── Flask/                      # Web 应用（2）
@@ -73,10 +78,15 @@ Python_Practice_Script/
 | [`weather_line_chart.py`](Tool/weather_line_chart.py) | 7 日气温趋势图 —— 调用 Open-Meteo API，绘制双色折线 + 温差区间填充 | `requests` · `matplotlib` |
 | [`qrcode_generator.py`](Tool/qrcode_generator.py) | Tkinter 图形化二维码生成器 —— 即时预览与自动保存 PNG | `tkinter` · `qrcode` · `Pillow` |
 | [`word_cloud.py`](Tool/word_cloud.py) | 中文人名词云图生成 —— jieba 词性标注提取人名，Tkinter 弹窗展示 | `jieba` · `wordcloud` · `tkinter` |
-| [`remote_command.py`](Tool/remote_command.py) | SSH 远程运维工具 —— 交互式命令执行 + SFTP 文件上传 / 下载 / 改名 | `paramiko` |
-| [`mc_server_query.py`](Tool/mc_server_query.py) | Minecraft 服务器状态查询 + IP 地理位置追踪 | `requests` |
-| [`Process_and_System_Utilities.py`](Tool/Process_and_System_Utilities.py) | 进程和系统实用程序 —— 系统概览、进程排行（CPU / 内存）、模糊搜索进程、结束进程、实时资源监控 | `psutil` |
-| [`remote_monitor.py`](Tool/remote_monitor.py) | 远程多主机健康巡检与 Apache 自愈工具 —— SSH 批量采集 CPU / 内存 / 磁盘占用率，检查 Apache2 / MySQL 服务状态，Apache 停止时自动重启恢复 | `paramiko` · `psutil`（远端） |
+
+### Server_Tool — 服务器运维工具
+
+| 脚本 | 功能说明 | 核心技术 |
+|------|---------|---------|
+| [`remote_command.py`](Tool/Server_Tool/remote_command.py) | SSH 远程运维工具 —— 交互式命令执行 + SFTP 文件上传 / 下载 / 改名 | `paramiko` |
+| [`mc_server_query.py`](Tool/Server_Tool/mc_server_query.py) | Minecraft 服务器状态查询 + IP 地理位置追踪 | `requests` |
+| [`Process_and_System_Utilities.py`](Tool/Server_Tool/Process_and_System_Utilities.py) | 进程和系统实用程序 —— 系统概览、进程排行（CPU / 内存）、模糊搜索进程、结束进程、实时资源监控 | `psutil` |
+| [`remote_monitor.py`](Tool/Server_Tool/remote_monitor.py) | 多主机自动化巡检与服务自愈工具 —— SQLite 持久化主机信息，SSH 远程采集 CPU / 内存 / 磁盘占用率，检查 Web / 数据库服务状态，服务停止时自动重启恢复 | `paramiko` · `psutil`（远端）· `sqlite3` |
 
 ---
 
