@@ -1,5 +1,5 @@
 #coding=utf-8
-# 功能：通过python程序远程执行命令
+# 功能：通过paramiko模块远程执行命令
 import paramiko,time
 
 def ssh(hostname, username, password, port=22):
