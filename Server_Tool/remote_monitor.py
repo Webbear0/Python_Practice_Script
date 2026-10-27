@@ -1,6 +1,6 @@
 # remote_monitor.py -- 多主机自动化巡检与服务自愈工具
 # 基于 paramiko + psutil(远端) + sqlite3, 支持主机信息持久化与交互式管理
-# 前置要求: 目标 Ubuntu 24.05 主机已安装 python3-psutil
+# 前置要求: 目标 Ubuntu 24.04.5 LTS 主机已安装 python3-psutil
 import json, os, sys, time, getpass, sqlite3, paramiko
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hosts.db")
