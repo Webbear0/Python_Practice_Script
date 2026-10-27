@@ -1,6 +1,6 @@
 #  Python_Practice_Script
 
-本项目收录了学习 Python 期间编写的 **30 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
+本项目收录了学习 Python 期间编写的 **31 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
 
 所有代码均已在 **Python 3.12+** 环境下测试通过。
 
@@ -11,16 +11,20 @@
 ```
 Python_Practice_Script/
 ├── BiliBili_tool/              # B站数据工具集（7）
-├── SQL/                        # 数据库应用（5）
+├── SQL/                        # 数据库应用（6）
 │   ├── MySQL/                  #   pymysql
 │   ├── SQLlite/                #   sqlite3
 │   └── SQL Server/             #   pyodbc
-├── Tool/                       # 实用工具箱（8）
-│   ├── Server_Tool/            #   服务器运维工具（4）
+├── Tool/                       # 实用工具箱（5）
 │   ├── train_ticket_query.py
 │   ├── weather_line_chart.py
 │   ├── qrcode_generator.py
-│   └── word_cloud.py
+│   ├── word_cloud.py
+│   └── mc_server_query.py      #   Minecraft 服务器查询
+├── Server_Tool/                # 服务器运维工具（3）
+│   ├── remote_command.py
+│   ├── Process_and_System_Utilities.py
+│   └── remote_monitor.py
 ├── Web_Spider/                 # 网络爬虫（6）
 ├── music_tool/                 # 音乐处理工具（2）
 ├── Flask/                      # Web 应用（2）
@@ -67,6 +71,7 @@ Python_Practice_Script/
 | 脚本 | 功能说明 | 核心技术 |
 |------|---------|---------|
 | [`todo_list.py`](SQL/SQLlite/todo_list.py) | 本地待办事项清单 —— 增删改查、标记完成、清理已完成，零配置单文件数据库 | `sqlite3` · SQLite |
+| [`sqlite3_demo.py`](SQL/SQLlite/sqlite3_demo.py) | SQLite 基础操作示例 —— 自动创建 `hosts.db` 与主机资产表，完成插入 / 查询 / 更新 / 按 ID 删除的完整 CRUD 流程，使用 `?` 占位符参数化 | `sqlite3` · SQL |
 
 ---
 
@@ -78,15 +83,17 @@ Python_Practice_Script/
 | [`weather_line_chart.py`](Tool/weather_line_chart.py) | 7 日气温趋势图 —— 调用 Open-Meteo API，绘制双色折线 + 温差区间填充 | `requests` · `matplotlib` |
 | [`qrcode_generator.py`](Tool/qrcode_generator.py) | Tkinter 图形化二维码生成器 —— 即时预览与自动保存 PNG | `tkinter` · `qrcode` · `Pillow` |
 | [`word_cloud.py`](Tool/word_cloud.py) | 中文人名词云图生成 —— jieba 词性标注提取人名，Tkinter 弹窗展示 | `jieba` · `wordcloud` · `tkinter` |
+| [`mc_server_query.py`](Tool/mc_server_query.py) | Minecraft 服务器状态查询 + IP 地理位置追踪 —— 查询在线人数、版本、MOTD 与归属地 | `requests` |
 
-### Server_Tool — 服务器运维工具
+---
+
+##  Server_Tool — 服务器运维工具
 
 | 脚本 | 功能说明 | 核心技术 |
 |------|---------|---------|
-| [`remote_command.py`](Tool/Server_Tool/remote_command.py) | SSH 远程运维工具 —— 交互式命令执行 + SFTP 文件上传 / 下载 / 改名 | `paramiko` |
-| [`mc_server_query.py`](Tool/Server_Tool/mc_server_query.py) | Minecraft 服务器状态查询 + IP 地理位置追踪 | `requests` |
-| [`Process_and_System_Utilities.py`](Tool/Server_Tool/Process_and_System_Utilities.py) | 进程和系统实用程序 —— 系统概览、进程排行（CPU / 内存）、模糊搜索进程、结束进程、实时资源监控 | `psutil` |
-| [`remote_monitor.py`](Tool/Server_Tool/remote_monitor.py) | 多主机自动化巡检与服务自愈工具 —— SQLite 持久化主机信息，SSH 远程采集 CPU / 内存 / 磁盘占用率，检查 Web / 数据库服务状态，服务停止时自动重启恢复 | `paramiko` · `psutil`（远端）· `sqlite3` |
+| [`remote_command.py`](Server_Tool/remote_command.py) | SSH 远程运维工具 —— 交互式命令执行 + SFTP 文件上传 / 下载 / 改名 | `paramiko` |
+| [`Process_and_System_Utilities.py`](Server_Tool/Process_and_System_Utilities.py) | 进程和系统实用程序 —— 系统概览、进程排行（CPU / 内存）、模糊搜索进程、结束进程、实时资源监控 | `psutil` |
+| [`remote_monitor.py`](Server_Tool/remote_monitor.py) | 多主机自动化巡检与服务自愈工具 —— 交互式维护主机清单（SQLite 持久化），SSH 远程采集 CPU / 内存 / 磁盘占用率，超过 90% 阈值时告警，检查 Web / 数据库等 systemd 服务并在停止时自动重启，输出巡检汇总报告 | `paramiko` · `psutil`（远端）· `sqlite3` |
 
 ---
 
@@ -107,7 +114,7 @@ Python_Practice_Script/
 
 | 脚本 | 功能说明 | 核心技术 |
 |------|---------|---------|
-| [`lrc_editor.py`](music_tool/lrc_editor.py) | 多功能 LRC 歌词编辑器 —— 双语拆分、行顺序智能重排、时间轴偏移微调、音频元数据同步写入，支持交互式菜单与 CLI 子命令 | `mutagen` · `re` · `argparse` |
+| [`lrc_editor.py`](music_tool/lrc_editor.py) | 多功能 LRC 歌词编辑器 —— 双语拆分、行顺序智能重排、时间轴偏移微调、音频元数据同步到 LRC 标签，支持交互式菜单与 CLI 子命令 | `mutagen` · `re` · `argparse` |
 | [`music_manager.py`](music_tool/music_manager.py) | 音乐库自动化管理 —— 元数据归档整理、FLAC→MP3 批量转码（FFmpeg）、封面重命名、文件规范化 | `mutagen` · `subprocess` · `pathlib` |
 
 ---
@@ -131,7 +138,8 @@ Python_Practice_Script/
 
 - Python **3.12+**
 - 部分脚本需要额外服务：MySQL（`bank_os_mysql.py` / `campus_network_mysql.py`）、SQL Server（`bank_os_sqlserver.py` / `campus_network_sqlserver.py`）、MySQL 或 MariaDB（`PythonMyAdmin`）、FFmpeg（`music_manager.py`）
-- `todo_list.py` 使用内置 `sqlite3`，无需安装任何数据库服务
+- `Server_Tool/remote_monitor.py` 要求远端 Linux 主机安装 `python3-psutil`，并允许通过 `sudo systemctl` 重启被监控服务
+- `SQL/SQLlite/todo_list.py` 与 `SQL/SQLlite/sqlite3_demo.py` 使用内置 `sqlite3`，无需安装任何数据库服务
 
 ### 安装依赖
 
@@ -154,6 +162,12 @@ python Tool/weather_line_chart.py
 # 启动 LRC 歌词编辑器
 python music_tool/lrc_editor.py
 
+# 运行 SQLite 待办清单
+python SQL/SQLlite/todo_list.py
+
+# 启动多主机巡检工具
+python Server_Tool/remote_monitor.py
+
 # 启动 Flask 入门示例（访问 http://127.0.0.1:5000）
 python Flask/demo/app.py
 
@@ -175,7 +189,7 @@ python Flask/PythonMyAdmin/app.py
 | 多媒体 | `mutagen` |
 | 桌面 GUI | `qrcode` · `Pillow` |
 | 数据可视化 | `matplotlib` · `jieba` · `wordcloud` |
-| 远程运维 | `paramiko` |
+| 系统运维 | `paramiko` · `psutil` |
 | Web 框架 | `flask` |
 | 可选 | `curl_cffi`（B站反爬降级备选） |
 
