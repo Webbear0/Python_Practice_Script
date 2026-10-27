@@ -29,12 +29,11 @@ for r in rows:
     print(f"ID: {r[0]} | 主机: {r[3]}@{r[1]}:{r[2]} | 监控服务: {r[4]}")
 
 # 5、修改指定主机的监控服务（UPDATE 按 ID 定位行, 用 ? 占位符传入新值）
-conn.execute("UPDATE hosts SET services=? WHERE id=?", ("apache2,mariadb,redis", 1))
+conn.execute("UPDATE hosts SET services=? WHERE id=?", ("apache2,mariadb", 1))
 conn.commit()
 
-print("是否按 ID 删除指定主机？")
-input(" 输入 'y' 继续: ")
-if input().strip().lower() == 'y':
+choice = input("是否按 ID 删除指定主机？输入 'y' 继续: ").strip().lower()
+if choice == 'y':
     # 6、按 ID 删除指定主机（通过 cur.rowcount 判断是否删除成功）
     cur = conn.execute("DELETE FROM hosts WHERE id=?", (1,))
     conn.commit()
