@@ -18,6 +18,7 @@ Pillow
 matplotlib
 jieba
 wordcloud
+pyecharts
 
 # ── 系统运维与实用工具 ──
 paramiko

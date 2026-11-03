@@ -1,6 +1,6 @@
 #  Python_Practice_Script
 
-本项目收录了学习 Python 期间编写的 **31 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
+本项目收录了学习 Python 期间编写的 **35 个**实战脚本与项目，涵盖数据库应用、网络爬虫、多媒体处理、桌面 GUI、数据可视化、自动化运维、Web 应用以及 Web API 调用等多个领域。
 
 所有代码均已在 **Python 3.12+** 环境下测试通过。
 
@@ -30,6 +30,12 @@ Python_Practice_Script/
 ├── Flask/                      # Web 应用（2）
 │   ├── demo/                   #   Flask 入门示例
 │   └── PythonMyAdmin/          #   迷你版 phpMyAdmin
+├── ops_monitor/                # 自动化运维监控平台（4）
+│   ├── db_helper.py            #   数据库模块（SQLite + MariaDB）
+│   ├── mail_alert.py           #   邮件告警模块
+│   ├── collector.py            #   后台定时采集与告警总控
+│   ├── app.py                  #   Flask Web 监控看板
+│   └── templates/index.html    #   监控仪表盘模板
 ├── requirements.txt            # 项目依赖
 └── README.md
 ```
@@ -132,6 +138,21 @@ Python_Practice_Script/
 
 ---
 
+##  ops_monitor — 自动化运维监控平台
+
+轻量级多主机定时巡检、服务自愈与 Web 可视化监控平台。通过 SSH 远程采集被监控主机的 CPU / 内存 / 磁盘占用率，自动检测并重启异常服务，监控数据持久化至 MariaDB，告警邮件实时推送，Flask + pyecharts 提供浏览器监控看板。
+
+| 文件 | 功能说明 | 核心技术 |
+|------|---------|---------:|
+| [`db_helper.py`](ops_monitor/db_helper.py) | 数据库操作模块 —— SQLite 本地配置管理（主机列表增删查）+ PyMySQL 远程 MariaDB 入库（建库建表、写入状态、查询最新 / 历史记录） | `sqlite3` · `pymysql` |
+| [`mail_alert.py`](ops_monitor/mail_alert.py) | 邮件告警模块 —— SMTP SSL（465 端口）发送告警邮件，未配置或发送失败时仅打印提示，不中断采集循环 | `smtplib` |
+| [`collector.py`](ops_monitor/collector.py) | 后台定时采集与告警总控 —— 首次运行引导配置，30 秒间隔遍历所有主机，SSH 远程调用 psutil 采集指标，服务异常自动重启，超阈值（80%）触发邮件告警 | `paramiko` · `psutil`（远端） |
+| [`app.py`](ops_monitor/app.py) | Flask Web 监控看板（0.0.0.0:8080）—— 从 MariaDB 读取监控数据，pyecharts v2.x 生成资源柱状图与 CPU 趋势折线图，30 秒自动刷新 | `flask` · `pyecharts` |
+
+**运行前提**：被监控主机均为 Ubuntu，已安装 `python3-psutil`；其中一台作为 MariaDB 数据库服务端存储监控数据。
+
+---
+
 ##  快速开始
 
 ### 环境要求
@@ -139,6 +160,7 @@ Python_Practice_Script/
 - Python **3.12+**
 - 部分脚本需要额外服务：MySQL（`bank_os_mysql.py` / `campus_network_mysql.py`）、SQL Server（`bank_os_sqlserver.py` / `campus_network_sqlserver.py`）、MySQL 或 MariaDB（`PythonMyAdmin`）、FFmpeg（`music_manager.py`）
 - `Server_Tool/remote_monitor.py` 要求远端 Linux 主机安装 `python3-psutil`，并允许通过 `sudo systemctl` 重启被监控服务
+- `ops_monitor` 项目要求：远端 Ubuntu 主机安装 `python3-psutil`，一台 MariaDB 服务端（3306 端口），控制端安装 `paramiko` / `pymysql` / `flask` / `pyecharts`
 - `SQL/SQLlite/todo_list.py` 与 `SQL/SQLlite/sqlite3_demo.py` 使用内置 `sqlite3`，无需安装任何数据库服务
 
 ### 安装依赖
@@ -173,9 +195,15 @@ python Flask/demo/app.py
 
 # 启动 PythonMyAdmin（访问 http://127.0.0.1:5000，在网页上填写数据库连接信息）
 python Flask/PythonMyAdmin/app.py
+
+# 启动运维监控平台 (首次运行会引导配置, 之后每 30 秒自动巡检)
+python ops_monitor/collector.py
+
+# 启动监控看板 (访问 http://127.0.0.1:8080)
+python ops_monitor/app.py
 ```
 
-> 两个 Flask 项目都使用 5000 端口，不能同时运行。
+> `Flask/demo`、`Flask/PythonMyAdmin` 都使用 5000 端口，不能同时运行；`ops_monitor/app.py` 使用 8080 端口，可与前两者并行。
 
 ---
 
@@ -188,7 +216,7 @@ python Flask/PythonMyAdmin/app.py
 | 数据展示 | `prettytable` · `xlwt` |
 | 多媒体 | `mutagen` |
 | 桌面 GUI | `qrcode` · `Pillow` |
-| 数据可视化 | `matplotlib` · `jieba` · `wordcloud` |
+| 数据可视化 | `matplotlib` · `jieba` · `wordcloud` · `pyecharts` |
 | 系统运维 | `paramiko` · `psutil` |
 | Web 框架 | `flask` |
 | 可选 | `curl_cffi`（B站反爬降级备选） |

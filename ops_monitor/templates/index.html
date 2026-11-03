@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运维监控平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #1f2937; }
+        .header { background: #1f2937; color: #fff; padding: 16px 30px; display: flex;
+                  justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; font-weight: 500; }
+        .header span { font-size: 13px; color: #9ca3af; }
+        .wrap { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px;
+                box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .card h3 { margin-bottom: 14px; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        td:first-child, td:nth-child(2) { text-align: left; }
+        .ok   { color: #16a34a; font-weight: 600; }
+        .warn { color: #dc2626; font-weight: 600; }
+        .svc  { font-size: 13px; color: #4b5563; }
+        .time { font-size: 12px; color: #9ca3af; }
+        .charts { display: flex; gap: 20px; flex-wrap: wrap; }
+        .chart-card { flex: 1; min-width: 480px; }
+        .chart-box { width: 100%; height: 380px; }
+        .footer { text-align: center; padding: 16px; font-size: 12px; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>OPS Monitor -- 运维监控平台</h1>
+        <span>每 30 秒自动刷新</span>
+    </div>
+
+    <div class="wrap">
+        <!-- 状态表格 -->
+        <div class="card">
+            <h3>服务器实时状态</h3>
+            {% if servers %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>主机名</th><th>IP</th>
+                        <th>CPU (%)</th><th>内存 (%)</th><th>磁盘 (%)</th>
+                        <th>服务状态</th><th>采集时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for s in servers %}
+                    <tr>
+                        <td><strong>{{ s.hostname }}</strong></td>
+                        <td>{{ s.ip }}</td>
+                        <td class="{{ 'warn' if s.cpu > 80 else 'ok' }}">{{ "%.1f"|format(s.cpu) }}</td>
+                        <td class="{{ 'warn' if s.mem > 80 else 'ok' }}">{{ "%.1f"|format(s.mem) }}</td>
+                        <td class="{{ 'warn' if s.disk > 80 else 'ok' }}">{{ "%.1f"|format(s.disk) }}</td>
+                        <td class="svc">{{ s.services or "-" }}</td>
+                        <td class="time">{{ s.time }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color:#9ca3af;">暂无监控数据, 请确认 collector.py 正在运行</p>
+            {% endif %}
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts">
+            <div class="card chart-card">
+                <div id="bar_chart" class="chart-box"></div>
+            </div>
+            <div class="card chart-card">
+                <div id="line_chart" class="chart-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">OPS Monitor &copy; 2026 | Flask + pyecharts + MariaDB</div>
+
+    <script>
+        /* 柱状图 -- 当前资源使用率 */
+        var barOpts = {{ bar_options | safe }};
+        if (barOpts && barOpts.series) {
+            var barChart = echarts.init(document.getElementById('bar_chart'));
+            barChart.setOption(barOpts);
+        }
+
+        /* 折线图 -- CPU 历史趋势 */
+        var lineOpts = {{ line_options | safe }};
+        if (lineOpts && lineOpts.series) {
+            var lineChart = echarts.init(document.getElementById('line_chart'));
+            lineChart.setOption(lineOpts);
+        }
+
+        /* 窗口自适应 */
+        window.addEventListener('resize', function() {
+            if (typeof barChart  !== 'undefined') barChart.resize();
+            if (typeof lineChart !== 'undefined') lineChart.resize();
+        });
+
+        /* 30 秒自动刷新 */
+        setTimeout(function() { location.reload(); }, 30000);
+    </script>
+</body>
+</html>
