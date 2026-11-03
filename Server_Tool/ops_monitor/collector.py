@@ -1,10 +1,10 @@
 # collector.py -- 后台定时采集与告警总控脚本
 # 功能: 首次运行引导配置 -> 定时 SSH 采集 -> 服务自愈 -> MariaDB 入库 -> 邮件告警
 import json, time, paramiko
-from db_helper import (init_local_db, has_config, save_db_server, save_host,
+from Server_Tool.ops_monitor.db_helper import (init_local_db, has_config, save_db_server, save_host,
                         get_db_server, get_all_hosts, init_remote_db, insert_status,
                         cleanup_old_data)
-from mail_alert import send_alert
+from Server_Tool.ops_monitor.mail_alert import send_alert
 
 # 远程一行 Python 命令: 在目标机调用 psutil 采集指标并以 JSON 返回
 COLLECT_CMD = (
