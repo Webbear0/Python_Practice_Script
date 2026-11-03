@@ -30,6 +30,7 @@ Python_Practice_Script/
 │       ├── mail_alert.py       #     邮件告警模块
 │       ├── collector.py        #     后台定时采集与告警总控
 │       ├── app.py              #     Flask Web 监控看板
+│       ├── static/echarts.min.js
 │       └── templates/index.html#     监控仪表盘模板
 ├── Web_Spider/                 # 网络爬虫（6）
 ├── music_tool/                 # 音乐处理工具（2）

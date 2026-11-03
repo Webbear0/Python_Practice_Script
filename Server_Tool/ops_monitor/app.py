@@ -5,7 +5,7 @@ from collections import defaultdict
 from flask import Flask, render_template
 from pyecharts.charts import Bar, Line
 from pyecharts import options as opts
-from Server_Tool.ops_monitor.db_helper import init_local_db, get_db_server, get_latest_status, get_history
+from db_helper import init_local_db, get_db_server, get_latest_status, get_history
 
 app = Flask(__name__)
 
