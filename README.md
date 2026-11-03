@@ -21,10 +21,16 @@ Python_Practice_Script/
 │   ├── qrcode_generator.py
 │   ├── word_cloud.py
 │   └── mc_server_query.py      #   Minecraft 服务器查询
-├── Server_Tool/                # 服务器运维工具（3）
+├── Server_Tool/                # 服务器运维工具（3 + ops_monitor 子项目）
 │   ├── remote_command.py
 │   ├── Process_and_System_Utilities.py
-│   └── remote_monitor.py
+│   ├── remote_monitor.py
+│   └── ops_monitor/            #   自动化运维监控平台（4）
+│       ├── db_helper.py        #     数据库模块（SQLite + MariaDB）
+│       ├── mail_alert.py       #     邮件告警模块
+│       ├── collector.py        #     后台定时采集与告警总控
+│       ├── app.py              #     Flask Web 监控看板
+│       └── templates/index.html#     监控仪表盘模板
 ├── Web_Spider/                 # 网络爬虫（6）
 ├── music_tool/                 # 音乐处理工具（2）
 ├── Flask/                      # Web 应用（2）
