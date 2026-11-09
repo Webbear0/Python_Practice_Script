@@ -37,12 +37,6 @@ Python_Practice_Script/
 ├── Flask/                      # Web 应用（2）
 │   ├── demo/                   #   Flask 入门示例
 │   └── PythonMyAdmin/          #   迷你版 phpMyAdmin
-├── ops_monitor/                # 自动化运维监控平台（4）
-│   ├── db_helper.py            #   数据库模块（SQLite + MariaDB）
-│   ├── mail_alert.py           #   邮件告警模块
-│   ├── collector.py            #   后台定时采集与告警总控
-│   ├── app.py                  #   Flask Web 监控看板
-│   └── templates/index.html    #   监控仪表盘模板
 ├── requirements.txt            # 项目依赖
 └── README.md
 ```
@@ -106,7 +100,7 @@ Python_Practice_Script/
 |------|---------|---------|
 | [`remote_command.py`](Server_Tool/remote_command.py) | SSH 远程运维工具 —— 交互式命令执行 + SFTP 文件上传 / 下载 / 改名 | `paramiko` |
 | [`Process_and_System_Utilities.py`](Server_Tool/Process_and_System_Utilities.py) | 进程和系统实用程序 —— 系统概览、进程排行（CPU / 内存）、模糊搜索进程、结束进程、实时资源监控 | `psutil` |
-| [`remote_monitor.py`](Server_Tool/remote_monitor.py) | 多主机自动化巡检与服务自愈工具 —— 交互式维护主机清单（SQLite 持久化），SSH 远程采集 CPU / 内存 / 磁盘占用率，超过 90% 阈值时告警，检查 Web / 数据库等 systemd 服务并在停止时自动重启，输出巡检汇总报告 | `paramiko` · `psutil`（远端）· `sqlite3` |
+| [`remote_monitor.py`](Server_Tool/remote_monitor.py) | 多主机自动化巡检与服务自愈工具 —— 交互式维护主机清单（SQLite 持久化），SSH 远程采集 CPU / 内存 / 磁盘占用率，超过 90% 阈值时输出告警提示（仅终端打印，不发送邮件），检查 Web / 数据库等 systemd 服务并在停止时自动重启，输出巡检汇总报告 | `paramiko` · `psutil`（远端）· `sqlite3` |
 
 ---
 
@@ -147,14 +141,14 @@ Python_Practice_Script/
 
 ##  ops_monitor — 自动化运维监控平台
 
-轻量级多主机定时巡检、服务自愈与 Web 可视化监控平台。通过 SSH 远程采集被监控主机的 CPU / 内存 / 磁盘占用率，自动检测并重启异常服务，监控数据持久化至 MariaDB，告警邮件实时推送，Flask + pyecharts 提供浏览器监控看板。
+轻量级多主机定时巡检、服务自愈与 Web 可视化监控平台。通过 SSH 远程采集被监控主机的 CPU / 内存 / 磁盘占用率，自动检测并重启异常服务，监控数据持久化至 MariaDB，配置邮箱后实时推送告警邮件，Flask + pyecharts 提供浏览器监控看板。
 
 | 文件 | 功能说明 | 核心技术 |
 |------|---------|---------:|
-| [`db_helper.py`](ops_monitor/db_helper.py) | 数据库操作模块 —— SQLite 本地配置管理（主机列表增删查）+ PyMySQL 远程 MariaDB 入库（建库建表、写入状态、查询最新 / 历史记录） | `sqlite3` · `pymysql` |
-| [`mail_alert.py`](ops_monitor/mail_alert.py) | 邮件告警模块 —— SMTP SSL（465 端口）发送告警邮件，未配置或发送失败时仅打印提示，不中断采集循环 | `smtplib` |
-| [`collector.py`](ops_monitor/collector.py) | 后台定时采集与告警总控 —— 首次运行引导配置，30 秒间隔遍历所有主机，SSH 远程调用 psutil 采集指标，服务异常自动重启，超阈值（80%）触发邮件告警 | `paramiko` · `psutil`（远端） |
-| [`app.py`](ops_monitor/app.py) | Flask Web 监控看板（0.0.0.0:8080）—— 从 MariaDB 读取监控数据，pyecharts v2.x 生成资源柱状图与 CPU 趋势折线图，30 秒自动刷新 | `flask` · `pyecharts` |
+| [`db_helper.py`](Server_Tool/ops_monitor/db_helper.py) | 数据库操作模块 —— SQLite 本地配置管理（主机列表增删查）+ PyMySQL 远程 MariaDB 入库（建库建表、写入状态、查询最新 / 历史记录） | `sqlite3` · `pymysql` |
+| [`mail_alert.py`](Server_Tool/ops_monitor/mail_alert.py) | 邮件告警模块 —— SMTP SSL（465 端口）发送告警邮件，未配置或发送失败时仅打印提示，不中断采集循环 | `smtplib` |
+| [`collector.py`](Server_Tool/ops_monitor/collector.py) | 后台定时采集与告警总控 —— 首次运行引导配置，30 秒间隔遍历所有主机，SSH 远程调用 psutil 采集指标，服务异常自动重启，超阈值（80%）触发邮件告警（邮箱未配置时仅打印提示） | `paramiko` · `psutil`（远端） |
+| [`app.py`](Server_Tool/ops_monitor/app.py) | Flask Web 监控看板（0.0.0.0:8080）—— 从 MariaDB 读取监控数据，pyecharts v2.x 生成资源柱状图与 CPU 趋势折线图，30 秒自动刷新 | `flask` · `pyecharts` |
 
 **运行前提**：被监控主机均为 Ubuntu，已安装 `python3-psutil`；其中一台作为 MariaDB 数据库服务端存储监控数据。
 
@@ -204,13 +198,13 @@ python Flask/demo/app.py
 python Flask/PythonMyAdmin/app.py
 
 # 启动运维监控平台 (首次运行会引导配置, 之后每 30 秒自动巡检)
-python ops_monitor/collector.py
+python Server_Tool/ops_monitor/collector.py
 
 # 启动监控看板 (访问 http://127.0.0.1:8080)
-python ops_monitor/app.py
+python Server_Tool/ops_monitor/app.py
 ```
 
-> `Flask/demo`、`Flask/PythonMyAdmin` 都使用 5000 端口，不能同时运行；`ops_monitor/app.py` 使用 8080 端口，可与前两者并行。
+> `Flask/demo`、`Flask/PythonMyAdmin` 都使用 5000 端口，不能同时运行；`Server_Tool/ops_monitor/app.py` 使用 8080 端口，可与前两者并行。
 
 ---
 
