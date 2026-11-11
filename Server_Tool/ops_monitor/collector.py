@@ -20,6 +20,19 @@ THRESHOLD = 80      # 资源告警阈值 (%)
 INTERVAL  = 30      # 采集间隔 (秒)
 CLEANUP_EVERY = 100 # 每 N 轮清理一次历史数据
 KEEP_DAYS = 30      # 保留最近 N 天的数据
+COOLDOWN  = 600     # 告警冷却时间 (秒), 同一告警 10 分钟内不重复发送
+
+_alert_cd = {}      # 告警冷却记录: {(ip, 类别): 上次发送时间戳}
+
+
+def _should_alert(ip, category):
+    """检查该告警是否已过冷却期, 若是则更新时间并返回 True。"""
+    key = (ip, category)
+    now = time.time()
+    if now - _alert_cd.get(key, 0) < COOLDOWN:
+        return False
+    _alert_cd[key] = now
+    return True
 
 
 # == SSH 工具 ==================================================
@@ -98,8 +111,9 @@ def collect_one(host, db_info):
     for key, label in [("cpu", "CPU"), ("mem", "内存"), ("disk", "磁盘")]:
         v = m[key]
         if v > THRESHOLD:
-            alerts.append(f"{label}使用率 {v:.1f}% 超过阈值 {THRESHOLD}%")
             print(f"    {label}: {v:.1f}%  <-- 超阈值!")
+            if _should_alert(ip, key):
+                alerts.append(f"{label}使用率 {v:.1f}% 超过阈值 {THRESHOLD}%")
         else:
             print(f"    {label}: {v:.1f}%")
 
@@ -123,11 +137,13 @@ def collect_one(host, db_info):
                 if out3.strip().lower() == "active":
                     print(f"    [恢复] {svc}: 重启成功")
                     svc_results[svc] = "已恢复"
-                    alerts.append(f"服务 {svc} 异常, 已自动重启恢复")
+                    if _should_alert(ip, f"svc_{svc}"):
+                        alerts.append(f"服务 {svc} 异常, 已自动重启恢复")
                 else:
                     print(f"    [失败] {svc}: 重启后仍异常")
                     svc_results[svc] = "异常"
-                    alerts.append(f"服务 {svc} 重启失败, 需人工处理!")
+                    if _should_alert(ip, f"svc_{svc}"):
+                        alerts.append(f"服务 {svc} 重启失败, 需人工处理!")
         except Exception as e:
             print(f"    [错误] 服务 {svc} 检查失败: {e}")
             svc_results[svc] = "检查失败"

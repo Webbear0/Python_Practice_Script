@@ -1,0 +1,12 @@
+[Unit]
+Description=Ops Monitor Data Collector Service
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Python_Practice_Script/Server_Tool/ops_monitor
+ExecStart=/opt/Python_Practice_Script/.venv/bin/python3 -u collector.py
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
