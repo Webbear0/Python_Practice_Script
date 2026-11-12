@@ -1,5 +1,5 @@
-# app.py -- Flask Web 监控看板 (监听 0.0.0.0:8080)
-# 从 MariaDB 读取监控数据, 使用 pyecharts v2.x 生成图表
+# app.py -- Flask Web 主程序 (门户 + 监控看板)
+# Gunicorn 启动: gunicorn -b 127.0.0.1:8000 app:app
 import json
 from collections import defaultdict
 from flask import Flask, render_template
@@ -60,7 +60,14 @@ def build_line(history):
 
 
 @app.route("/")
-def index():
+def portal():
+    """门户主页 -- 导航至各业务节点。"""
+    return render_template("portal.html")
+
+
+@app.route("/ops")
+def ops():
+    """运维监控看板 -- 从 MariaDB 读取数据, pyecharts 生成图表。"""
     init_local_db()
     db_info = get_db_server()
     if not db_info:
@@ -80,4 +87,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8000)
