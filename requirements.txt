@@ -26,4 +26,5 @@ psutil
 
 # ── Web 端开发 ──
 flask
+flask-cors
 gunicorn
