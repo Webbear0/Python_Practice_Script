@@ -79,6 +79,16 @@ def get_all_hosts():
             for r in rows]
 
 
+def get_host_by_ip(ip):
+    """根据 IP 查询单台主机的 SSH 凭据, 返回字典或 None。"""
+    conn = _local_conn()
+    row = conn.execute("SELECT ip,hostname,user,password,services FROM hosts WHERE ip=?", (ip,)).fetchone()
+    conn.close()
+    if row:
+        return {"ip": row[0], "hostname": row[1], "user": row[2], "password": row[3], "services": row[4]}
+    return None
+
+
 # == MariaDB 远程入库 ===========================================
 def _remote_conn(db_info, database="ops_monitor"):
     return pymysql.connect(host=db_info["ip"], port=db_info["port"],
