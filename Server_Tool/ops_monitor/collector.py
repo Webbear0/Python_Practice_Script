@@ -41,11 +41,13 @@ def ssh_exec(ip, user, pwd, cmd):
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     c.connect(ip, port=22, username=user, password=pwd, timeout=10)
-    _, stdout, stderr = c.exec_command(cmd, timeout=30)
-    out  = stdout.read().decode().strip()
-    err  = stderr.read().decode().strip()
-    code = stdout.channel.recv_exit_status()
-    c.close()
+    try:
+        _, stdout, stderr = c.exec_command(cmd, timeout=30)
+        out  = stdout.read().decode().strip()
+        err  = stderr.read().decode().strip()
+        code = stdout.channel.recv_exit_status()
+    finally:
+        c.close()
     return out, err, code
 
 

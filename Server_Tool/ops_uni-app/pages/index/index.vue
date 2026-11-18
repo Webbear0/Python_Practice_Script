@@ -1,9 +1,9 @@
 <template>
   <view class="page">
-    <!-- 顶栏 -->
-    <view class="header">
+    <!-- 顶栏: 动态 paddingTop 适配状态栏安全区 (BUG-2) -->
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <text class="header-title">掌上运维</text>
-      <text class="header-btn" @click="showConfig = true">设置</text>
+      <text class="header-btn" @click="gatewayInput = gateway; showConfig = true">设置</text>
     </view>
 
     <!-- 网关配置弹窗 -->
@@ -67,10 +67,15 @@
         <text class="metric-val" :class="{ 'val-warn': s.disk > 80 }">{{ s.disk.toFixed(1) }}%</text>
       </view>
 
-      <!-- 服务状态 -->
+      <!-- 服务状态: 彩色标签展示 (OPT-4) -->
       <view class="svc-row">
         <text class="svc-label">服务状态:</text>
-        <text class="svc-val">{{ s.services || '-' }}</text>
+        <view class="svc-tags">
+          <text v-for="svc in s.svcList" :key="svc.name"
+                :class="svc.status === 'active' ? 'tag-ok' : 'tag-err'">
+            {{ svc.name }}: {{ svc.status }}
+          </text>
+        </view>
       </view>
 
       <!-- 采集时间 -->
@@ -79,11 +84,12 @@
         <text class="svc-time">{{ s.time }}</text>
       </view>
 
-      <!-- 重启按钮 -->
+      <!-- 重启按钮: 使用预处理的 svcList (OPT-5), 防重复点击 (OPT-2) -->
       <view class="btn-row">
-        <text class="btn btn-restart" v-for="svc in parseSvcNames(s.services)" :key="svc"
-              @click="confirmRestart(s.ip, svc)">
-          重启 {{ svc }}
+        <text class="btn btn-restart" v-for="svc in s.svcList" :key="svc.name"
+              :class="{ 'btn-disabled': restarting }"
+              @click="confirmRestart(s.ip, svc.name)">
+          重启 {{ svc.name }}
         </text>
       </view>
     </view>
@@ -99,14 +105,18 @@
 export default {
   data() {
     return {
+      statusBarHeight: 0,
       gateway: '',
       gatewayInput: '',
       showConfig: false,
       servers: [],
-      loading: false
+      loading: false,
+      restarting: false
     }
   },
   onLoad() {
+    // 获取状态栏高度, 适配安全区 (BUG-2)
+    this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 0
     const saved = uni.getStorageSync('ops_gateway')
     if (saved) {
       this.gateway = saved
@@ -114,6 +124,11 @@ export default {
     } else {
       this.showConfig = true
     }
+  },
+  // 下拉刷新 (OPT-1)
+  onPullDownRefresh() {
+    this.fetchStatus()
+    setTimeout(() => uni.stopPullDownRefresh(), 1000)
   },
   methods: {
     // 保存网关地址
@@ -135,6 +150,17 @@ export default {
       if (this.gateway) this.showConfig = false
     },
 
+    // 解析服务状态字符串为对象数组
+    // 输入: "apache2=active, mariadb=inactive"
+    // 输出: [{ name: "apache2", status: "active" }, { name: "mariadb", status: "inactive" }]
+    parseSvcPairs(svcStr) {
+      if (!svcStr || svcStr === '-') return []
+      return svcStr.split(',').map(s => {
+        const parts = s.trim().split('=')
+        return { name: parts[0] || '', status: parts[1] || 'unknown' }
+      }).filter(s => s.name)
+    },
+
     // 查询监控数据
     fetchStatus() {
       this.loading = true
@@ -143,7 +169,14 @@ export default {
         method: 'GET',
         success: (res) => {
           if (Array.isArray(res.data)) {
-            this.servers = res.data
+            // 数据清洗: 确保数值类型安全 (OPT-3), 预处理服务列表 (OPT-5)
+            this.servers = res.data.map(s => ({
+              ...s,
+              cpu:  Number(s.cpu)  || 0,
+              mem:  Number(s.mem)  || 0,
+              disk: Number(s.disk) || 0,
+              svcList: this.parseSvcPairs(s.services)
+            }))
           } else if (res.data && res.data.error) {
             uni.showToast({ title: res.data.error, icon: 'none' })
           }
@@ -155,15 +188,9 @@ export default {
       })
     },
 
-    // 从服务状态字符串中解析服务名列表
-    // 输入: "apache2=active, mariadb=active"  输出: ["apache2", "mariadb"]
-    parseSvcNames(svcStr) {
-      if (!svcStr || svcStr === '-') return []
-      return svcStr.split(',').map(s => s.trim().split('=')[0]).filter(Boolean)
-    },
-
-    // 确认重启弹窗
+    // 确认重启弹窗 (OPT-2: 防重复点击)
     confirmRestart(ip, service) {
+      if (this.restarting) return
       uni.showModal({
         title: '确认重启',
         content: `确定要重启 ${ip} 上的 ${service} 服务吗?`,
@@ -175,6 +202,7 @@ export default {
 
     // 执行远程重启
     doRestart(ip, service) {
+      this.restarting = true
       uni.showLoading({ title: '正在重启...', mask: true })
       uni.request({
         url: this.gateway + '/api/restart',
@@ -194,7 +222,10 @@ export default {
         fail: () => {
           uni.showToast({ title: '请求失败', icon: 'none' })
         },
-        complete: () => { uni.hideLoading() }
+        complete: () => {
+          uni.hideLoading()
+          this.restarting = false
+        }
       })
     }
   }
@@ -249,15 +280,21 @@ export default {
 .val-warn { color: #ef4444; }
 
 /* 服务状态 */
-.svc-row { display: flex; margin-top: 10rpx; font-size: 24rpx; }
-.svc-label { color: #6b7280; margin-right: 8rpx; }
+.svc-row { display: flex; align-items: center; margin-top: 10rpx; font-size: 24rpx; }
+.svc-label { color: #6b7280; margin-right: 8rpx; flex-shrink: 0; }
 .svc-val  { color: #374151; flex: 1; }
 .svc-time { color: #9ca3af; }
+.svc-tags { display: flex; flex-wrap: wrap; gap: 8rpx; }
+.tag-ok  { background: #dcfce7; color: #16a34a; padding: 4rpx 14rpx;
+           border-radius: 6rpx; font-size: 22rpx; }
+.tag-err { background: #fee2e2; color: #dc2626; padding: 4rpx 14rpx;
+           border-radius: 6rpx; font-size: 22rpx; }
 
 /* 重启按钮行 */
 .btn-row { display: flex; gap: 16rpx; margin-top: 20rpx; flex-wrap: wrap; }
 .btn-restart { background: #fee2e2; color: #dc2626; font-size: 24rpx;
                padding: 12rpx 28rpx; border-radius: 8rpx; }
+.btn-disabled { opacity: 0.5; }
 
 /* 刷新 */
 .refresh-row { display: flex; justify-content: center; margin-top: 30rpx; }

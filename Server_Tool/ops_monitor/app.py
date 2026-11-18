@@ -1,6 +1,6 @@
 # app.py -- Flask Web 主程序 (门户 + 监控看板 + API 接口)
 # Gunicorn 启动: gunicorn -b 127.0.0.1:8000 app:app
-import json, paramiko
+import json, re, paramiko
 from collections import defaultdict
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
@@ -95,11 +95,13 @@ def _ssh_exec(ip, user, pwd, cmd):
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     c.connect(ip, port=22, username=user, password=pwd, timeout=10)
-    _, stdout, stderr = c.exec_command(cmd, timeout=30)
-    out  = stdout.read().decode().strip()
-    err  = stderr.read().decode().strip()
-    code = stdout.channel.recv_exit_status()
-    c.close()
+    try:
+        _, stdout, stderr = c.exec_command(cmd, timeout=30)
+        out  = stdout.read().decode().strip()
+        err  = stderr.read().decode().strip()
+        code = stdout.channel.recv_exit_status()
+    finally:
+        c.close()
     return out, err, code
 
 
@@ -129,6 +131,10 @@ def api_restart():
 
     ip  = body["ip"].strip()
     svc = body["service"].strip()
+
+    # 防命令注入: 服务名只允许字母、数字、连字符、下划线
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', svc):
+        return jsonify({"success": False, "message": "服务名包含非法字符"}), 400
 
     # 从 SQLite 查询目标主机的 SSH 凭据
     host = get_host_by_ip(ip)
