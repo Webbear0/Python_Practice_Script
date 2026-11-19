@@ -4,8 +4,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/Python_Practice_Script/Server_Tool/ops_monitor
-ExecStart=/opt/Python_Practice_Script/.venv/bin/python3 -u collector.py
+WorkingDirectory=/opt/Server_Tool/ops_monitor
+ExecStart=/opt/.venv/bin/python3 -u collector.py
 Restart=always
 RestartSec=5
 [Install]
