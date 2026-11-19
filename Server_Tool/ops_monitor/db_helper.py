@@ -1,5 +1,5 @@
 # db_helper.py -- 数据库操作模块 (SQLite3 本地配置 + MariaDB 远程入库)
-import os, sqlite3, pymysql
+import os, sqlite3, pymysql, paramiko
 
 LOCAL_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "local_config.db")
 
@@ -175,3 +175,20 @@ def cleanup_old_data(db_info, keep_days=30):
     finally:
         conn.close()
     return deleted
+
+
+
+# == SSH 工具 (统一供 app.py / collector.py 调用) ===============
+def ssh_exec(ip, user, pwd, cmd):
+    """SSH 远程执行命令, 返回 (stdout, stderr, exit_code)。"""
+    c = paramiko.SSHClient()
+    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    c.connect(ip, port=22, username=user, password=pwd, timeout=10)
+    try:
+        _, stdout, stderr = c.exec_command(cmd, timeout=30)
+        out  = stdout.read().decode().strip()
+        err  = stderr.read().decode().strip()
+        code = stdout.channel.recv_exit_status()
+    finally:
+        c.close()
+    return out, err, code

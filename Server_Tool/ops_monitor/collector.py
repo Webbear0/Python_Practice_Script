@@ -1,9 +1,9 @@
 # collector.py -- 后台定时采集与告警总控脚本
 # 功能: 首次运行引导配置 -> 定时 SSH 采集 -> 服务自愈 -> MariaDB 入库 -> 邮件告警
-import json, time, paramiko
+import json, time
 from db_helper import (init_local_db, has_config, save_db_server, save_host,
                         get_db_server, get_all_hosts, init_remote_db, insert_status,
-                        cleanup_old_data)
+                        cleanup_old_data, ssh_exec)
 from mail_alert import send_alert
 
 # 远程一行 Python 命令: 在目标机调用 psutil 采集指标并以 JSON 返回
@@ -33,22 +33,6 @@ def _should_alert(ip, category):
         return False
     _alert_cd[key] = now
     return True
-
-
-# == SSH 工具 ==================================================
-def ssh_exec(ip, user, pwd, cmd):
-    """SSH 远程执行命令, 返回 (stdout, stderr, exit_code)。"""
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(ip, port=22, username=user, password=pwd, timeout=10)
-    try:
-        _, stdout, stderr = c.exec_command(cmd, timeout=30)
-        out  = stdout.read().decode().strip()
-        err  = stderr.read().decode().strip()
-        code = stdout.channel.recv_exit_status()
-    finally:
-        c.close()
-    return out, err, code
 
 
 # == 首次运行引导 ==============================================

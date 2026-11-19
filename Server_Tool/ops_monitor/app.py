@@ -1,13 +1,13 @@
 # app.py -- Flask Web 主程序 (门户 + 监控看板 + API 接口)
 # Gunicorn 启动: gunicorn -b 127.0.0.1:8000 app:app
-import json, re, paramiko
+import json, re
 from collections import defaultdict
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from pyecharts.charts import Bar, Line
 from pyecharts import options as opts
 from db_helper import (init_local_db, get_db_server, get_latest_status,
-                        get_history, get_host_by_ip)
+                        get_history, get_host_by_ip, ssh_exec)
 
 app = Flask(__name__)
 CORS(app)  # 启用跨域, 允许 uni-app 前端调用
@@ -89,22 +89,6 @@ def ops():
                            bar_options=bar_opts, line_options=line_opts)
 
 
-# == SSH 工具 (供 /api/restart 使用) ============================
-def _ssh_exec(ip, user, pwd, cmd):
-    """SSH 远程执行命令, 返回 (stdout, stderr, exit_code)。"""
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(ip, port=22, username=user, password=pwd, timeout=10)
-    try:
-        _, stdout, stderr = c.exec_command(cmd, timeout=30)
-        out  = stdout.read().decode().strip()
-        err  = stderr.read().decode().strip()
-        code = stdout.channel.recv_exit_status()
-    finally:
-        c.close()
-    return out, err, code
-
-
 # == API 接口 (供 uni-app 前端调用) =============================
 @app.route("/api/status")
 def api_status():
@@ -143,7 +127,7 @@ def api_restart():
 
     # 远程执行 systemctl restart
     try:
-        out, err, code = _ssh_exec(ip, host["user"], host["password"],
+        out, err, code = ssh_exec(ip, host["user"], host["password"],
                                    f"systemctl restart {svc}")
         if code == 0:
             return jsonify({"success": True, "message": f"{svc} 重启成功"})
