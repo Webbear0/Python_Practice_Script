@@ -1,5 +1,5 @@
 # collector.py -- 后台定时采集与告警总控脚本
-# 功能: 首次运行引导配置 -> 定时 SSH 采集 -> 服务自愈 -> MariaDB 入库 -> 邮件告警
+# 功能: 首次运行引导配置 -> 定时 SSH 采集 -> 服务自愈 -> mariaDB 入库 -> 邮件告警
 import json, time
 from db_helper import (init_local_db, has_config, save_db_server, save_host,
                         get_db_server, get_all_hosts, init_remote_db, insert_status,
