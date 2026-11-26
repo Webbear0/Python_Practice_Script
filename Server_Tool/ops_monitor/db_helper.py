@@ -163,6 +163,24 @@ def get_history(db_info, limit=60):
             for r in rows]
 
 
+def get_history_by_ip(db_info, ip, limit=20):
+    """获取指定主机最近 N 条历史记录 (按采集时间升序, 供单机趋势图使用)。"""
+    conn = _remote_conn(db_info)
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT hostname, ip, cpu, mem, disk, services_status, collected_at "
+                    "FROM server_status WHERE ip=%s ORDER BY collected_at DESC LIMIT %s",
+                    (ip, limit))
+        rows = list(cur.fetchall())
+    finally:
+        conn.close()
+    rows.reverse()
+    return [{"hostname": r[0], "ip": r[1], "cpu": r[2], "mem": r[3],
+             "disk": r[4], "services": r[5],
+             "time": r[6].strftime("%m-%d %H:%M") if hasattr(r[6], "strftime") else str(r[6])[5:16]}
+            for r in rows]
+
+
 def cleanup_old_data(db_info, keep_days=30):
     """清理 N 天前的历史数据, 防止表无限膨胀。"""
     conn = _remote_conn(db_info)

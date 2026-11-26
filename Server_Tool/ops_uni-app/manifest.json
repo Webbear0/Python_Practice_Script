@@ -14,7 +14,6 @@
             "alwaysShowBeforeRender" : true,
             "waiting" : true,
             "autoclose" : true,
-            "usesCleartextTraffic" : true,
             "delay" : 0
         },
         /* 模块配置 */
@@ -39,7 +38,8 @@
                     "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
                     "<uses-feature android:name=\"android.hardware.camera\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
-                ]
+                ],
+                "usesCleartextTraffic" : true
             },
             /* ios打包配置 */
             "ios" : {

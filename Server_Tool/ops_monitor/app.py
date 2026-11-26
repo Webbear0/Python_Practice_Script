@@ -1,18 +1,44 @@
 # app.py -- Flask Web 主程序 (门户 + 监控看板 + API 接口)
 # Gunicorn 启动: gunicorn -b 127.0.0.1:8000 app:app
-import json, re
+import json, re, functools
 from collections import defaultdict
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from pyecharts.charts import Bar, Line
 from pyecharts import options as opts
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from db_helper import (init_local_db, get_db_server, get_latest_status,
-                        get_history, get_host_by_ip, ssh_exec)
+                        get_history, get_history_by_ip, get_host_by_ip, ssh_exec)
 
 app = Flask(__name__)
 CORS(app)  # 启用跨域, 允许 uni-app 前端调用
 
+# == Token 鉴权配置 =============================================
+SECRET_KEY = "ops-monitor-secret-2026"
+token_serializer = URLSafeTimedSerializer(SECRET_KEY)
+ADMIN_USER = "admin"
+ADMIN_PASS = "123456"
+TOKEN_MAX_AGE = 86400  # 24 小时
 
+
+def token_required(f):
+    """鉴权装饰器: 校验 Authorization: Bearer <token>, 缺失/过期/无效返回 401。"""
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return jsonify({"error": "未提供 Token"}), 401
+        try:
+            token_serializer.loads(auth[7:], max_age=TOKEN_MAX_AGE)
+        except SignatureExpired:
+            return jsonify({"error": "Token 已过期, 请重新登录"}), 401
+        except BadSignature:
+            return jsonify({"error": "Token 无效"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+# == 图表工具 ===================================================
 def chart_json(chart):
     """将 pyecharts 图表转为 JSON 字符串, 兼容不同版本返回类型。"""
     result = chart.dump_options()
@@ -62,6 +88,7 @@ def build_line(history):
     return chart_json(line)
 
 
+# == Web 页面路由 (无需鉴权) ====================================
 @app.route("/")
 def portal():
     """门户主页 -- 导航至各业务节点。"""
@@ -90,9 +117,24 @@ def ops():
 
 
 # == API 接口 (供 uni-app 前端调用) =============================
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    """POST /api/login -- 管理员登录, 签发 24h Token (无需鉴权)。"""
+    body = request.get_json(silent=True)
+    if not body:
+        return jsonify({"success": False, "message": "请提供登录信息"}), 400
+    username = body.get("username", "").strip()
+    password = body.get("password", "").strip()
+    if username == ADMIN_USER and password == ADMIN_PASS:
+        token = token_serializer.dumps({"user": username})
+        return jsonify({"success": True, "token": token, "username": username})
+    return jsonify({"success": False, "message": "账号或密码错误"}), 401
+
+
 @app.route("/api/status")
+@token_required
 def api_status():
-    """GET /api/status -- 返回所有主机最新监控数据 (JSON)。"""
+    """GET /api/status -- 返回所有主机最新监控数据 (需鉴权)。"""
     init_local_db()
     db_info = get_db_server()
     if not db_info:
@@ -104,9 +146,25 @@ def api_status():
     return jsonify(data)
 
 
+@app.route("/api/history/<ip>")
+@token_required
+def api_history(ip):
+    """GET /api/history/<ip> -- 返回指定主机近 20 条历史记录 (需鉴权)。"""
+    init_local_db()
+    db_info = get_db_server()
+    if not db_info:
+        return jsonify({"error": "未找到数据库配置"}), 500
+    try:
+        data = get_history_by_ip(db_info, ip, limit=20)
+    except Exception as e:
+        return jsonify({"error": f"数据库连接失败: {e}"}), 500
+    return jsonify(data)
+
+
 @app.route("/api/restart", methods=["POST"])
+@token_required
 def api_restart():
-    """POST /api/restart -- 远程重启指定主机的服务。
+    """POST /api/restart -- 远程重启指定主机的服务 (需鉴权)。
     请求体: {"ip": "172.16.10.10", "service": "apache2"}
     """
     body = request.get_json(silent=True)

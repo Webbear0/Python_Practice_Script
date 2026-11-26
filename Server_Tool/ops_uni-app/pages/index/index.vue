@@ -1,29 +1,29 @@
 <template>
   <view class="page">
-    <!-- 顶栏: 动态 paddingTop 适配状态栏安全区 (BUG-2) -->
+    <!-- 顶栏 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <text class="header-title">掌上运维</text>
-      <text class="header-btn" @click="gatewayInput = gateway; showConfig = true">设置</text>
+      <text class="header-title">集群监控</text>
+      <text class="header-sub">OPS Monitor</text>
     </view>
 
-    <!-- 网关配置弹窗 -->
-    <view class="mask" v-if="showConfig" @click.self="cancelConfig">
-      <view class="config-box">
-        <text class="config-title">网关地址配置</text>
-        <input class="config-input" v-model="gatewayInput"
-               placeholder="输入域名或 IP, 如 172.16.10.252" />
-        <view class="config-btns">
-          <text class="btn btn-cancel" @click="cancelConfig">取消</text>
-          <text class="btn btn-save" @click="saveGateway">保存</text>
-        </view>
+    <!-- 集群摘要统计 -->
+    <view class="summary" v-if="servers.length > 0">
+      <view class="summary-item">
+        <text class="summary-num">{{ servers.length }}</text>
+        <text class="summary-label">总节点</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-num ok">{{ onlineCount }}</text>
+        <text class="summary-label">正常</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-num warn">{{ alertCount }}</text>
+        <text class="summary-label">告警</text>
       </view>
     </view>
 
     <!-- 加载 / 空状态 -->
-    <view v-if="!gateway" class="empty">
-      <text class="empty-text">请先点击右上角「设置」配置网关地址</text>
-    </view>
-    <view v-else-if="loading && servers.length === 0" class="empty">
+    <view v-if="loading && servers.length === 0" class="empty">
       <text class="empty-text">加载中...</text>
     </view>
     <view v-else-if="servers.length === 0" class="empty">
@@ -31,7 +31,8 @@
     </view>
 
     <!-- 服务器卡片列表 -->
-    <view class="card" v-for="(s, i) in servers" :key="i">
+    <view class="card" v-for="(s, i) in servers" :key="i"
+          @click="goDetail(s.ip)">
       <view class="card-head">
         <text class="card-name">{{ s.hostname || s.ip }}</text>
         <text class="card-ip">{{ s.ip }}</text>
@@ -67,9 +68,9 @@
         <text class="metric-val" :class="{ 'val-warn': s.disk > 80 }">{{ s.disk.toFixed(1) }}%</text>
       </view>
 
-      <!-- 服务状态: 彩色标签展示 (OPT-4) -->
+      <!-- 服务状态标签 -->
       <view class="svc-row">
-        <text class="svc-label">服务状态:</text>
+        <text class="svc-label">服务:</text>
         <view class="svc-tags">
           <text v-for="svc in s.svcList" :key="svc.name"
                 :class="svc.status === 'active' ? 'tag-ok' : 'tag-err'">
@@ -78,81 +79,61 @@
         </view>
       </view>
 
-      <!-- 采集时间 -->
-      <view class="svc-row">
-        <text class="svc-label">采集时间:</text>
-        <text class="svc-time">{{ s.time }}</text>
-      </view>
-
-      <!-- 重启按钮: 使用预处理的 svcList (OPT-5), 防重复点击 (OPT-2) -->
-      <view class="btn-row">
-        <text class="btn btn-restart" v-for="svc in s.svcList" :key="svc.name"
-              :class="{ 'btn-disabled': restarting }"
-              @click="confirmRestart(s.ip, svc.name)">
-          重启 {{ svc.name }}
-        </text>
+      <!-- 点击提示 -->
+      <view class="card-arrow">
+        <text class="arrow-text">查看详情 ></text>
       </view>
     </view>
 
-    <!-- 底部刷新按钮 -->
-    <view class="refresh-row" v-if="gateway && servers.length > 0">
-      <text class="btn btn-refresh" @click="fetchStatus">刷新数据</text>
-    </view>
+    <!-- 底部安全区占位 -->
+    <view style="height: 120rpx;"></view>
   </view>
 </template>
 
 <script>
+import request from '../../utils/request.js'
+
 export default {
   data() {
     return {
       statusBarHeight: 0,
-      gateway: '',
-      gatewayInput: '',
-      showConfig: false,
       servers: [],
-      loading: false,
-      restarting: false
+      loading: false
+    }
+  },
+  computed: {
+    // 正常节点: 所有服务都是 active
+    onlineCount() {
+      return this.servers.filter(s =>
+        s.svcList.length > 0 && s.svcList.every(v => v.status === 'active')
+      ).length
+    },
+    // 告警节点: 任意指标超 80% 或有非 active 服务
+    alertCount() {
+      return this.servers.filter(s =>
+        s.cpu > 80 || s.mem > 80 || s.disk > 80 ||
+        s.svcList.some(v => v.status !== 'active')
+      ).length
     }
   },
   onLoad() {
-    // 获取状态栏高度, 适配安全区 (BUG-2)
     this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 0
-    const saved = uni.getStorageSync('ops_gateway')
-    if (saved) {
-      this.gateway = saved
-      this.fetchStatus()
-    } else {
-      this.showConfig = true
-    }
   },
-  // 下拉刷新 (OPT-1)
+  onShow() {
+    // 每次显示时检查登录态
+    const token = uni.getStorageSync('ops_token')
+    if (!token) {
+      uni.reLaunch({ url: '/pages/login/login' })
+      return
+    }
+    this.fetchStatus()
+  },
   onPullDownRefresh() {
     this.fetchStatus()
     setTimeout(() => uni.stopPullDownRefresh(), 1000)
   },
   methods: {
-    // 保存网关地址
-    saveGateway() {
-      let gw = this.gatewayInput.trim()
-      if (!gw) return uni.showToast({ title: '请输入地址', icon: 'none' })
-      // 自动补全协议头
-      if (!/^https?:\/\//.test(gw)) gw = 'http://' + gw
-      // 去除末尾斜杠
-      gw = gw.replace(/\/+$/, '')
-      this.gateway = gw
-      uni.setStorageSync('ops_gateway', gw)
-      this.showConfig = false
-      this.fetchStatus()
-      uni.showToast({ title: '已保存', icon: 'success' })
-    },
-
-    cancelConfig() {
-      if (this.gateway) this.showConfig = false
-    },
-
-    // 解析服务状态字符串为对象数组
-    // 输入: "apache2=active, mariadb=inactive"
-    // 输出: [{ name: "apache2", status: "active" }, { name: "mariadb", status: "inactive" }]
+    // 解析服务状态字符串
     parseSvcPairs(svcStr) {
       if (!svcStr || svcStr === '-') return []
       return svcStr.split(',').map(s => {
@@ -161,103 +142,46 @@ export default {
       }).filter(s => s.name)
     },
 
-    // 查询监控数据
     fetchStatus() {
       this.loading = true
-      uni.request({
-        url: this.gateway + '/api/status',
-        method: 'GET',
-        success: (res) => {
-          if (Array.isArray(res.data)) {
-            // 数据清洗: 确保数值类型安全 (OPT-3), 预处理服务列表 (OPT-5)
-            this.servers = res.data.map(s => ({
-              ...s,
-              cpu:  Number(s.cpu)  || 0,
-              mem:  Number(s.mem)  || 0,
-              disk: Number(s.disk) || 0,
-              svcList: this.parseSvcPairs(s.services)
-            }))
-          } else if (res.data && res.data.error) {
-            uni.showToast({ title: res.data.error, icon: 'none' })
-          }
-        },
-        fail: (err) => {
-          uni.showToast({ title: '连接失败, 请检查网关地址', icon: 'none', duration: 2000 })
-        },
-        complete: () => { this.loading = false }
-      })
+      request({ url: '/api/status' }).then(res => {
+        if (Array.isArray(res.data)) {
+          this.servers = res.data.map(s => ({
+            ...s,
+            cpu:  Number(s.cpu)  || 0,
+            mem:  Number(s.mem)  || 0,
+            disk: Number(s.disk) || 0,
+            svcList: this.parseSvcPairs(s.services)
+          }))
+        }
+      }).catch(() => {}).finally(() => { this.loading = false })
     },
 
-    // 确认重启弹窗 (OPT-2: 防重复点击)
-    confirmRestart(ip, service) {
-      if (this.restarting) return
-      uni.showModal({
-        title: '确认重启',
-        content: `确定要重启 ${ip} 上的 ${service} 服务吗?`,
-        success: (res) => {
-          if (res.confirm) this.doRestart(ip, service)
-        }
-      })
-    },
-
-    // 执行远程重启
-    doRestart(ip, service) {
-      this.restarting = true
-      uni.showLoading({ title: '正在重启...', mask: true })
-      uni.request({
-        url: this.gateway + '/api/restart',
-        method: 'POST',
-        header: { 'Content-Type': 'application/json' },
-        data: { ip, service },
-        success: (res) => {
-          const d = res.data || {}
-          uni.showToast({
-            title: d.message || (d.success ? '重启成功' : '重启失败'),
-            icon: d.success ? 'success' : 'none',
-            duration: 2000
-          })
-          // 重启后延迟刷新状态
-          if (d.success) setTimeout(() => this.fetchStatus(), 3000)
-        },
-        fail: () => {
-          uni.showToast({ title: '请求失败', icon: 'none' })
-        },
-        complete: () => {
-          uni.hideLoading()
-          this.restarting = false
-        }
-      })
+    goDetail(ip) {
+      uni.navigateTo({ url: '/pages/detail/detail?ip=' + ip })
     }
   }
 }
 </script>
 
 <style>
-.page { background: #f0f2f5; min-height: 100vh; padding-bottom: 30rpx; }
+.page { background: #f0f2f5; min-height: 100vh; }
 
 /* 顶栏 */
-.header { background: #1f2937; display: flex; justify-content: space-between;
-          align-items: center; padding: 24rpx 30rpx; }
+.header { background: #1f2937; padding: 24rpx 30rpx;
+          display: flex; justify-content: space-between; align-items: center; }
 .header-title { color: #fff; font-size: 34rpx; font-weight: 600; }
-.header-btn { color: #60a5fa; font-size: 28rpx; }
+.header-sub { color: #64748b; font-size: 24rpx; }
 
-/* 网关配置弹窗 */
-.mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,.5); display: flex; align-items: center;
-        justify-content: center; z-index: 999; }
-.config-box { background: #fff; border-radius: 16rpx; padding: 40rpx;
-              width: 600rpx; }
-.config-title { font-size: 32rpx; font-weight: 600; display: block;
-                margin-bottom: 24rpx; color: #1f2937; }
-.config-input { border: 1px solid #d1d5db; border-radius: 8rpx;
-                padding: 16rpx 20rpx; font-size: 28rpx; width: 100%; }
-.config-btns { display: flex; justify-content: flex-end; gap: 16rpx; margin-top: 30rpx; }
-
-/* 通用按钮 */
-.btn { display: inline-block; padding: 14rpx 32rpx; border-radius: 8rpx;
-       font-size: 26rpx; text-align: center; }
-.btn-cancel { background: #f3f4f6; color: #374151; }
-.btn-save   { background: #3b82f6; color: #fff; }
+/* 集群摘要 */
+.summary { display: flex; justify-content: space-around; background: #fff;
+           margin: 20rpx 24rpx 0; border-radius: 12rpx; padding: 24rpx 0;
+           box-shadow: 0 2rpx 8rpx rgba(0,0,0,.06); }
+.summary-item { text-align: center; }
+.summary-num { display: block; font-size: 40rpx; font-weight: 700; color: #1f2937; }
+.summary-num.ok { color: #16a34a; }
+.summary-num.warn { color: #dc2626; }
+.summary-label { font-size: 22rpx; color: #9ca3af; }
 
 /* 卡片 */
 .card { background: #fff; margin: 20rpx 24rpx 0; border-radius: 16rpx;
@@ -282,27 +206,17 @@ export default {
 /* 服务状态 */
 .svc-row { display: flex; align-items: center; margin-top: 10rpx; font-size: 24rpx; }
 .svc-label { color: #6b7280; margin-right: 8rpx; flex-shrink: 0; }
-.svc-val  { color: #374151; flex: 1; }
-.svc-time { color: #9ca3af; }
 .svc-tags { display: flex; flex-wrap: wrap; gap: 8rpx; }
 .tag-ok  { background: #dcfce7; color: #16a34a; padding: 4rpx 14rpx;
            border-radius: 6rpx; font-size: 22rpx; }
 .tag-err { background: #fee2e2; color: #dc2626; padding: 4rpx 14rpx;
            border-radius: 6rpx; font-size: 22rpx; }
 
-/* 重启按钮行 */
-.btn-row { display: flex; gap: 16rpx; margin-top: 20rpx; flex-wrap: wrap; }
-.btn-restart { background: #fee2e2; color: #dc2626; font-size: 24rpx;
-               padding: 12rpx 28rpx; border-radius: 8rpx; }
-.btn-disabled { opacity: 0.5; }
-
-/* 刷新 */
-.refresh-row { display: flex; justify-content: center; margin-top: 30rpx; }
-.btn-refresh { background: #3b82f6; color: #fff; padding: 18rpx 60rpx;
-               border-radius: 10rpx; font-size: 28rpx; }
+/* 卡片底部箭头 */
+.card-arrow { text-align: right; margin-top: 16rpx; }
+.arrow-text { font-size: 22rpx; color: #9ca3af; }
 
 /* 空状态 */
-.empty { display: flex; justify-content: center; align-items: center;
-         height: 400rpx; }
+.empty { display: flex; justify-content: center; align-items: center; height: 400rpx; }
 .empty-text { font-size: 28rpx; color: #9ca3af; }
 </style>
